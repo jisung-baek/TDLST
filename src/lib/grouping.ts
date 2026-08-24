@@ -29,6 +29,24 @@ const dayDiff = (a: Date, b: Date) =>
   Math.round((startOfDay(a).getTime() - startOfDay(b).getTime()) / 86_400_000)
 
 /**
+ * 마감일의 '날짜'만 갈아끼운다. 시각은 건드리지 않는다 —
+ * 어제 19:00 스터디를 오늘로 미루면 오늘 19:00 이어야지 오늘 00:00 이 아니다.
+ * 종일 항목은 시각을 표시하지 않으므로 영향을 받지 않는다.
+ */
+export function withDate(dueAt: string, target: Date): string {
+  const d = new Date(dueAt)
+  return new Date(
+    target.getFullYear(),
+    target.getMonth(),
+    target.getDate(),
+    d.getHours(),
+    d.getMinutes(),
+    d.getSeconds(),
+    d.getMilliseconds(),
+  ).toISOString()
+}
+
+/**
  * 그룹 안에서의 순서.
  * 종일 항목을 먼저 올리고, 시각이 있는 항목은 이른 순으로 뒤에 붙인다.
  */

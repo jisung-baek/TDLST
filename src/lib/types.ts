@@ -28,9 +28,13 @@ export const CATEGORY_LABEL: Record<Category, string> = {
   other: '기타',
 }
 
+/**
+ * 하드코딩 hex 대신 CSS 변수를 읽는다. 값은 global.css :root 한 곳에만 있고,
+ * 나중에 테마를 바꿔도 여기를 고칠 일이 없다.
+ */
 export const CATEGORY_COLOR: Record<Category, string> = {
-  academic: '#5b9cff',
-  other: '#f2a33c',
+  academic: 'var(--academic)',
+  other: 'var(--other)',
 }
 
 export const REPEAT_LABEL: Record<Repeat, string> = {

@@ -15,11 +15,10 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = [] }
 tauri-plugin-autostart = "2"
+tauri-plugin-single-instance = "2"
 tauri-plugin-opener = "2"
 tauri-plugin-window-state = "2"
 
-[target.'cfg(windows)'.dependencies]
-window-vibrancy = "0.6"
 
 [profile.release]
 codegen-units = 1

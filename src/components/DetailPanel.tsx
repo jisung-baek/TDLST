@@ -26,9 +26,16 @@ function toTimeInput(iso: string | null, isAllDay: boolean): string {
 function composeDue(dateStr: string, timeStr: string): { due: string | null; allDay: boolean } {
   if (!dateStr) return { due: null, allDay: true }
   const [y, m, d] = dateStr.split('-').map(Number)
-  if (!timeStr) return { due: new Date(y, m - 1, d, 0, 0, 0, 0).toISOString(), allDay: true }
+  if (!timeStr)
+    return {
+      due: new Date(y, m - 1, d, 0, 0, 0, 0).toISOString(),
+      allDay: true,
+    }
   const [hh, mm] = timeStr.split(':').map(Number)
-  return { due: new Date(y, m - 1, d, hh, mm, 0, 0).toISOString(), allDay: false }
+  return {
+    due: new Date(y, m - 1, d, hh, mm, 0, 0).toISOString(),
+    allDay: false,
+  }
 }
 
 interface Props {
@@ -125,7 +132,7 @@ export default function DetailPanel({ task, onPatch, onDelete, onClose }: Props)
           />
           {dateStr && (
             <button
-              style={{ background: 'none', border: 'none', color: 'var(--text-faint)' }}
+              className="field-clear"
               onClick={() => onPatch({ due_at: null, is_all_day: true })}
               title="마감일 지우기"
             >
@@ -171,7 +178,7 @@ export default function DetailPanel({ task, onPatch, onDelete, onClose }: Props)
             ref={notesRef}
             className="notes-area"
             value={notes}
-            placeholder="메모 — 마크다운을 씁니다"
+            placeholder="메모"
             onChange={(e) => setNotes(e.target.value)}
             onBlur={commitNotes}
           />

@@ -1,5 +1,12 @@
 import { nextOccurrence } from '../src/lib/repeat.ts'
-import { groupTasks, tasksForDate, calendarMarks, monthGrid, dateKey } from '../src/lib/grouping.ts'
+import {
+  groupTasks,
+  tasksForDate,
+  calendarMarks,
+  monthGrid,
+  dateKey,
+  withDate,
+} from '../src/lib/grouping.ts'
 import type { Task } from '../src/lib/types.ts'
 
 const NOW = new Date(2026, 7, 18, 10, 0, 0) // 2026-08-18 (화) 10:00
@@ -122,6 +129,28 @@ check('같은 카테고리는 점 하나로', marks.get('2026-08-20')!.categorie
 check('완료 항목은 점을 만들지 않음', marks.get('2026-08-20')!.total, 3)
 check('지난 날짜는 지연 표시', marks.get('2026-08-15')!.hasOverdue, true)
 check('미래 날짜는 지연 아님', marks.get('2026-08-20')!.hasOverdue, false)
+
+// ── 미루기 ──────────────────────────────────────────────
+console.log('\nwithDate (미루기)')
+
+const TODAY = new Date(2026, 7, 18) // 8/18 (화)
+
+// 어제 19:00 스터디를 오늘로 미루면 오늘 19:00 이어야 한다
+check('시각을 지킨다', show(withDate(at(2026, 8, 17, 19), TODAY)), '2026-08-18 19:00')
+check('종일 항목(00:00)', show(withDate(at(2026, 8, 15, 0), TODAY)), '2026-08-18 00:00')
+check('달을 넘어온 것', show(withDate(at(2026, 7, 30, 9), TODAY)), '2026-08-18 09:00')
+check('해를 넘어온 것', show(withDate(at(2025, 12, 31, 23), TODAY)), '2026-08-18 23:00')
+// 미룬 뒤에는 지연이 사라지고 전부 오늘로 모여야 한다
+const stale = [
+  task({ title: '지난 레포트', due_at: at(2026, 8, 15) }),
+  task({ title: '지난 스터디', due_at: at(2026, 8, 17, 19), is_all_day: false }),
+]
+const moved = stale.map((t) => ({ ...t, due_at: withDate(t.due_at!, TODAY) }))
+check(
+  '미룬 뒤 그룹',
+  groupTasks(moved, NOW).map((g) => [g.key, g.tasks.length]),
+  [['today', 2]],
+)
 
 // ── 월간 그리드 ──────────────────────────────────────────
 console.log('\nmonthGrid')

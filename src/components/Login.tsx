@@ -69,22 +69,12 @@ export default function Login() {
         {busy && IN_TAURI && (
           <p className="hint">브라우저 창에서 로그인을 마치면 이 화면이 넘어갑니다.</p>
         )}
-        {error && (
-          <p className="hint" style={{ color: 'var(--overdue)' }}>
-            {error}
-          </p>
-        )}
+        {/* 단색 시스템이라 오류도 붉지 않다. 농도와 굵기로만 올린다. */}
+        {error && <p className="hint error">{error}</p>}
         {/* 창 장식이 없어서 로그인 전에는 이 버튼 말고 위젯을 끌 방법이 없다 */}
         {IN_TAURI && (
           <p className="hint">
             <button
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--text-faint)',
-                fontSize: 11,
-                padding: 0,
-              }}
               onClick={() => {
                 void import('@tauri-apps/api/window').then(({ getCurrentWindow }) =>
                   getCurrentWindow().close(),

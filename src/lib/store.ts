@@ -3,6 +3,7 @@ import * as cache from './db.ts'
 import type { Mutation } from './db.ts'
 import type { NewTask, Task } from './types.ts'
 import { nextOccurrence } from './repeat.ts'
+import { withDate } from './grouping.ts'
 
 /**
  * 모든 변경은 같은 경로를 탄다:
@@ -293,6 +294,33 @@ class TaskStore {
 
   async uncomplete(id: string): Promise<void> {
     await this.update(id, { completed_at: null })
+  }
+
+  /**
+   * 미루기 (SPEC §3) — 지연된 항목을 통째로 다른 날짜로 옮긴다.
+   *
+   * 날짜만 바꾸고 시각은 지킨다. 반복 항목도 같은 규칙이고, 다음 주기는
+   * 옮겨진 날짜를 기준으로 다시 계산된다.
+   *
+   * 되돌릴 수 있도록 실제로 바뀐 항목의 옮기기 전 마감일을 돌려준다.
+   * 확인 창을 두지 않는 대신 이 값으로 한 번 물릴 수 있게 한다.
+   */
+  async postpone(ids: string[], to: Date): Promise<{ id: string; due_at: string }[]> {
+    const before: { id: string; due_at: string }[] = []
+    for (const id of ids) {
+      const task = this.state.tasks.find((t) => t.id === id)
+      if (!task?.due_at || task.completed_at || task.deleted_at) continue
+      const next = withDate(task.due_at, to)
+      if (next === task.due_at) continue
+      before.push({ id, due_at: task.due_at })
+      await this.update(id, { due_at: next })
+    }
+    return before
+  }
+
+  /** 미루기 되돌리기 */
+  async restoreDue(entries: { id: string; due_at: string }[]): Promise<void> {
+    for (const e of entries) await this.update(e.id, { due_at: e.due_at })
   }
 
   async remove(id: string): Promise<void> {

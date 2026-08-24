@@ -26,8 +26,9 @@ const chrome = CANDIDATES.find((p) => existsSync(p))
 if (!chrome) throw new Error('Chrome 이나 Edge 를 찾지 못했습니다')
 
 const shots = [
-  { name: 'widget', width: 820, height: 420 },
-  { name: 'widget-wide', width: 1100, height: 560 },
+  { name: 'widget', width: 760, height: 520 },
+  { name: 'widget-wide', width: 1240, height: 700 },
+  { name: 'widget-min', width: 730, height: 400 },
   { name: 'phone', width: 390, height: 720 },
 ] as const
 

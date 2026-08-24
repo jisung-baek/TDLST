@@ -35,16 +35,19 @@ export default function Calendar({
 
   return (
     <div className={'calendar' + (collapsed ? ' collapsed' : '')}>
+      {/* 40px 제목을 사이에 끼면 좌우 버튼이 너무 멀어진다. 제목 → 스테퍼 → 오늘 순. */}
       <div className="cal-head">
-        <button className="cal-nav" onClick={() => onMonthShift(-1)} title="이전 달">
-          ‹
-        </button>
         <div className="cal-title" onClick={onToggleCollapsed}>
           {month.getFullYear()}년 {month.getMonth() + 1}월
         </div>
-        <button className="cal-nav" onClick={() => onMonthShift(1)} title="다음 달">
-          ›
-        </button>
+        <div className="cal-steppers">
+          <button className="cal-nav" onClick={() => onMonthShift(-1)} title="이전 달">
+            ‹
+          </button>
+          <button className="cal-nav" onClick={() => onMonthShift(1)} title="다음 달">
+            ›
+          </button>
+        </div>
         <button className="cal-today-btn" onClick={onToday}>
           오늘
         </button>

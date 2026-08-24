@@ -58,7 +58,7 @@ export default function TaskInput({ defaultDate, onAdd }: Props) {
         <input
           ref={inputRef}
           value={value}
-          placeholder="할 일 입력 — 예: 과제 제출 8/19 15:00"
+          placeholder="할 일 입력"
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={onKeyDown}
           enterKeyHint="done"
