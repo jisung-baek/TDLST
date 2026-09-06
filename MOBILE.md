@@ -8,16 +8,37 @@ PC 위젯과 같은 코드가 폰에서는 PWA 로 돈다. 별도 앱이 아니�
 
 ---
 
-## 1. 폰에서 여는 주소 만들기
+## 1. 폰에서 여는 주소
 
-**현재 이 저장소에 배포 설정은 없다.** SPEC §11 은 호스팅을 Cloudflare Pages 로
-정해 두었지만 `wrangler.toml` 도 CI 설정도 아직 없다. 그래서 폰에서 여는 길은
-지금 두 가지다.
+```
+https://tdlst.pages.dev
+```
 
-### A. 같은 Wi-Fi 에서 개발 서버로 (임시)
+Cloudflare Pages 에 올라가 있다 (SPEC §11 이 정한 대로, 프로젝트명 `tdlst`).
+`https` 로 서비스되므로 서비스 워커와 홈 화면 설치가 제대로 붙는다. 폰에서는 이 주소를 쓴다.
 
-`vite.config.ts` 의 서버가 `host: '0.0.0.0'`, `port: 1420` 으로 열려 있어 같은
-공유기에 붙은 폰에서 바로 들어갈 수 있다.
+### 고친 것을 폰에 반영하기
+
+저장소에 `wrangler.toml` 도 CI 설정도 없다. 빌드해서 직접 올리는 방식이다.
+
+```bash
+npm run build
+npx wrangler pages deploy dist --project-name tdlst --branch main
+```
+
+Cloudflare 에 환경변수를 등록할 필요는 없다. `npm run build` 가 `.env` 의 두 값을
+이미 번들에 박아 넣기 때문이다. 뒤집어 말하면 **`.env` 를 고쳤으면 반드시 다시
+빌드해서 다시 올려야** 폰에 반영된다.
+
+| 변수                     | 값                           |
+| ------------------------ | ---------------------------- |
+| `VITE_SUPABASE_URL`      | Supabase 프로젝트 설정 > API |
+| `VITE_SUPABASE_ANON_KEY` | 같은 화면의 anon key         |
+
+### 같은 Wi-Fi 에서 개발 서버로 (임시)
+
+올리기 전에 폰에서 잠깐 확인할 때만 쓴다. `vite.config.ts` 의 서버가 `host: '0.0.0.0'`,
+`port: 1420` 으로 열려 있어 같은 공유기에 붙은 폰에서 바로 들어갈 수 있다.
 
 ```bash
 npm run dev
@@ -33,32 +54,16 @@ PC 를 켜 둔 동안만 되고, IP 는 공유기가 바꿀 수 있다. 그리�
 아니라서 **서비스 워커가 등록되지 않는다** — 오프라인 캐시 없이 도는 셈이다.
 잠깐 확인하는 용도로만 쓴다.
 
-### B. `dist/` 를 정적 호스팅 (상시)
-
-```bash
-npm run build      # dist/ 생성
-```
-
-`dist/` 를 아무 정적 호스팅에 올리면 된다. SPEC 이 정한 Cloudflare Pages 기준으로는
-빌드 명령 `npm run build`, 출력 디렉터리 `dist` 다. 환경변수 두 개를 빌드 시점에
-넣어야 한다 (`.env.example` 참고).
-
-| 변수                     | 값                           |
-| ------------------------ | ---------------------------- |
-| `VITE_SUPABASE_URL`      | Supabase 프로젝트 설정 > API |
-| `VITE_SUPABASE_ANON_KEY` | 같은 화면의 anon key         |
-
-`https` 로 서비스되므로 서비스 워커와 홈 화면 설치가 제대로 붙는다. 실사용은 이쪽이다.
-
-### 어느 쪽이든 Supabase 에 주소를 등록해야 한다
+### 주소는 Supabase 에 등록되어 있어야 한다
 
 폰 로그인은 `redirectTo: window.location.origin` 으로 돌아온다 (`src/components/Login.tsx`).
 Supabase 대시보드 > Authentication > URL Configuration > **Redirect URLs** 에 폰에서
-쓰는 주소를 그대로 넣지 않으면 구글 인증까지 마쳐도 앱으로 못 돌아온다.
+쓰는 주소가 그대로 없으면 구글 인증까지 마쳐도 앱으로 못 돌아온다. 배포 주소는 이미
+등록해 두었다.
 
 ```
-https://<배포주소>
-http://192.168.0.x:1420      # A 방식으로 쓸 때
+https://tdlst.pages.dev
+http://192.168.0.x:1420      # 개발 서버로 볼 때만
 ```
 
 데스크톱 위젯은 사정이 달라 `http://localhost:14237` 를 쓴다 (SPEC §9). 폰 주소와
