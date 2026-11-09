@@ -22,10 +22,10 @@
 
   --text: #000000;
   --text-dim: rgba(0, 0, 0, 0.56);
-  --text-faint: rgba(0, 0, 0, 0.34);
+  --text-faint: rgba(0, 0, 0, 0.34); /* 2.4:1 — 플레이스홀더·장식 전용. 읽을 글에는 쓰지 않는다 */
 
   --academic: #0070f0; /* DESIGN.md tokens.colors.link-product */
-  --other: #a8cdf9; /* 같은 색상각의 연한 톤 */
+  --other: #6aa6f5; /* 같은 색상각의 연한 톤. #a8cdf9 는 흰 바탕 1.6:1 이라 막대가 사라졌다 */
   --accent-wash: rgba(0, 112, 240, 0.1);
 
   --radius: 5px; /* 컨테이너 — tokens.rounded.carousel-control */
@@ -93,6 +93,26 @@ button {
   cursor: pointer;
 }
 
+/* 선 아이콘(Icons.tsx). 크기는 글자 크기를 따라가고, 쓰는 곳에서 덮어쓴다. */
+.icon {
+  display: block;
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+
+/* 키보드 포커스는 한 가지 모양으로. 입력칸은 테두리가 이미 바뀌므로 뺀다. */
+:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 1px;
+  border-radius: var(--radius-sm);
+}
+.input-row input:focus-visible,
+.notes-area:focus-visible,
+.detail-title:focus-visible {
+  outline: none;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -110,6 +130,8 @@ button {
   position: relative;
   display: grid;
   grid-template-columns: 1fr 344px;
+  /* 행 높이를 창에 묶는다. auto 면 달력이 길어질 때 행이 늘어나 상태줄이 잘린다. */
+  grid-template-rows: minmax(0, 1fr);
   height: 100%;
   overflow: hidden;
   background: var(--bg);
@@ -136,6 +158,7 @@ button {
   flex-direction: column;
   padding: 28px 28px 26px;
   min-width: 0;
+  min-height: 0;
   border-right: 1px solid var(--border);
 }
 
@@ -160,25 +183,43 @@ button {
   font-variant-numeric: tabular-nums;
   cursor: default;
   white-space: nowrap;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+/* 접기는 폰에서만 쓴다. 위젯에서는 그냥 제목이다. */
+.cal-title-caret {
+  display: none;
+  width: 12px;
+  height: 12px;
+  color: var(--text-dim);
 }
 
-.cal-steppers {
+.cal-actions {
   display: flex;
+  align-items: center;
   gap: 6px;
-  margin-left: 2px;
+  margin-left: auto;
+}
+/* '오늘' 과 화살표 사이만 조금 더 띄운다 — 성격이 다른 두 동작이다 */
+.cal-today-btn + .cal-nav {
+  margin-left: 4px;
 }
 
 .cal-nav {
   width: 32px;
   height: 32px;
   flex-shrink: 0;
+  padding: 0;
   background: none;
-  border: 1px solid rgba(0, 0, 0, 0.16);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
-  color: var(--text-dim);
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1;
+  color: var(--text);
+  font-size: 14px; /* 아이콘 크기 */
   display: grid;
   place-items: center;
 }
@@ -190,10 +231,9 @@ button {
 
 /* corporate outline action 의 기하(radius 3, inline 29)만 차용. 흰 반전은 쓰지 않는다. */
 .cal-today-btn {
-  margin-left: auto;
-  height: 34px;
+  height: 32px;
   flex-shrink: 0;
-  padding: 0 29px;
+  padding: 0 16px;
   background: transparent;
   border: 1px solid var(--text);
   border-radius: var(--radius-sm);
@@ -220,7 +260,7 @@ button {
   font-size: 12px;
   line-height: 18px;
   font-weight: 400;
-  color: rgba(0, 0, 0, 0.4);
+  color: var(--text-dim);
 }
 /* 주말은 색이 아니라 농도·굵기로 구분한다 */
 .cal-weekday.sun,
@@ -232,7 +272,7 @@ button {
 .cal-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  grid-auto-rows: 1fr;
+  grid-template-rows: repeat(var(--weeks, 6), minmax(0, 1fr));
   flex: 1;
   gap: 4px;
   min-height: 0;
@@ -250,8 +290,10 @@ button {
   color: var(--text);
   overflow: hidden;
 }
-.cal-cell:hover {
-  background: var(--panel-hover);
+@media (hover: hover) {
+  .cal-cell:hover {
+    background: var(--panel-hover);
+  }
 }
 .cal-cell.outside .cal-daynum {
   color: rgba(0, 0, 0, 0.26);
@@ -410,8 +452,11 @@ button {
 .due-preview button {
   background: none;
   border: none;
-  color: var(--text-faint);
-  padding: 0 2px;
+  color: var(--text-dim);
+  padding: 4px 6px;
+  margin: -4px 0;
+  display: grid;
+  place-items: center;
   font-size: 11px;
   line-height: 1;
 }
@@ -440,7 +485,7 @@ button {
   min-width: 0;
   background: none;
   border: none;
-  color: var(--text-dim);
+  color: var(--text);
   font-size: 14px;
   font-weight: 500;
   line-height: 21px;
@@ -451,9 +496,9 @@ button {
   color: var(--text);
 }
 .group-head .caret {
-  font-size: 8px;
-  line-height: 1;
   width: 10px;
+  height: 10px;
+  color: var(--text-dim);
   flex-shrink: 0;
   transition: transform 0.12s ease;
 }
@@ -466,9 +511,11 @@ button {
   color: var(--text);
   font-weight: 600;
 }
+/* 캐럿과 같은 10px 칸을 차지해야 '지연' 제목이 다른 그룹 제목과 줄이 맞는다 */
 .group-head .overdue-mark {
   width: 9px;
   height: 9px;
+  margin: 0 0.5px;
   flex-shrink: 0;
   background: var(--text);
 }
@@ -479,7 +526,7 @@ button {
 }
 
 .group-count {
-  color: var(--text-faint);
+  color: var(--text-dim);
   font-weight: 400;
 }
 
@@ -507,9 +554,19 @@ button {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 2px 20px 10px;
+  margin: 0 20px 10px;
+  padding: 8px 12px;
   font-size: 12px;
-  color: var(--text-dim);
+  color: var(--text);
+  background: var(--bg-solid);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+.undo-bar span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .undo-bar button {
   background: none;
@@ -518,12 +575,16 @@ button {
   font-size: 12px;
   padding: 0;
   margin-left: auto;
+  flex-shrink: 0;
+  font-weight: 500;
 }
 .undo-bar button:hover {
   text-decoration: underline;
 }
 
 .task {
+  /* 제목 한 줄 높이. 체크 원이 이 줄의 가운데에 오도록 함께 쓴다. */
+  --title-lh: 18px;
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -531,8 +592,10 @@ button {
   border-radius: var(--radius-sm);
   cursor: default;
 }
-.task:hover {
-  background: var(--panel-hover);
+@media (hover: hover) {
+  .task:hover {
+    background: var(--panel-hover);
+  }
 }
 .task.selected {
   background: rgba(0, 112, 240, 0.08);
@@ -540,7 +603,7 @@ button {
 
 .task-check {
   flex-shrink: 0;
-  margin-top: 2px;
+  margin-top: calc((var(--title-lh) - 20px) / 2);
   width: 20px;
   height: 20px;
   border-radius: 50%;
@@ -549,19 +612,26 @@ button {
   padding: 0;
   display: grid;
   place-items: center;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease;
 }
 .task-check:hover {
   border-color: var(--text);
 }
 .task-check.done {
-  background: var(--text-faint);
-  border-color: var(--text-faint);
+  background: var(--text-dim);
+  border-color: var(--text-dim);
 }
 .task-check.done::after {
-  content: '✓';
-  font-size: 10px;
-  color: var(--bg-solid);
-  line-height: 1;
+  content: '';
+  width: 10px;
+  height: 10px;
+  background: var(--bg-solid);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2.25 5.25 4.25 7.25 7.75 3' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2.25 5.25 4.25 7.25 7.75 3' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    center / contain no-repeat;
 }
 
 .task-body {
@@ -571,7 +641,7 @@ button {
 
 .task-title {
   font-size: 13px;
-  line-height: 18px;
+  line-height: var(--title-lh);
   font-weight: 500;
   word-break: break-word;
   display: flex;
@@ -585,7 +655,8 @@ button {
 
 .task-bar {
   flex-shrink: 0;
-  width: 2px;
+  width: 3px;
+  border-radius: 2px;
   align-self: stretch;
 }
 
@@ -593,11 +664,20 @@ button {
   display: flex;
   gap: 10px;
   align-items: center;
-  font-size: 10px;
-  line-height: 14px;
+  font-size: 11px;
+  line-height: 15px;
   font-weight: 400;
-  color: var(--text-faint);
+  color: var(--text-dim);
   margin-top: 3px;
+  font-variant-numeric: tabular-nums;
+}
+.task-meta > span {
+  display: inline-flex;
+  align-items: center;
+}
+.meta-icon {
+  width: 12px;
+  height: 12px;
 }
 /* 지남: 색 없이 농도와 굵기로만 */
 .task-meta .overdue {
@@ -625,9 +705,9 @@ button {
   border: none;
   border-radius: var(--radius-sm);
   color: var(--text);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 16px;
-  padding: 6px 10px;
+  padding: 7px 10px;
   text-align: left;
 }
 .ctx-menu button:hover {
@@ -674,6 +754,9 @@ button {
   .detail {
     animation: none;
   }
+  .task-check {
+    transition: none;
+  }
   .group-head .caret {
     transition: none;
   }
@@ -692,8 +775,11 @@ button {
   border: none;
   color: var(--text-dim);
   padding: 4px 8px;
+  min-height: 26px;
+  display: grid;
+  place-items: center;
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: 12px;
 }
 .detail-head button:hover {
   background: var(--panel-hover);
@@ -729,19 +815,22 @@ button {
   resize: none;
   line-height: 22px;
   font-family: inherit;
+  /* rows 를 글자 수로 어림하던 것 대신 내용 높이에 맞춘다 (WebView2·Safari 18.4+) */
+  field-sizing: content;
 }
 
 .field {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-dim);
 }
-.field label {
+.field label,
+.field .field-label {
   width: 44px;
   flex-shrink: 0;
-  color: var(--text-faint);
+  color: var(--text-dim);
 }
 .field input[type='date'],
 .field input[type='time'],
@@ -751,8 +840,15 @@ button {
   color: var(--text);
   border-radius: var(--radius-sm);
   padding: 6px 8px;
-  font-size: 11px;
+  font-size: 12px;
   outline: none;
+  font-family: inherit;
+}
+/* 두 칸이 폭을 넘으면 지우기 ✕ 가 패널 밖으로 밀린다. 남는 폭을 나눠 갖게 한다. */
+.field input[type='date'],
+.field input[type='time'] {
+  flex: 1 1 0;
+  min-width: 0;
 }
 .field input:focus,
 .field select:focus {
@@ -767,10 +863,11 @@ button {
 .field-clear {
   background: none;
   border: none;
-  color: var(--text-faint);
+  color: var(--text-dim);
   padding: 0 4px;
-  font-size: 11px;
-  line-height: 1;
+  font-size: 12px;
+  display: grid;
+  place-items: center;
 }
 .field-clear:hover {
   color: var(--text);
@@ -786,7 +883,7 @@ button {
   color: var(--text-dim);
   border-radius: var(--radius-sm);
   padding: 6px 12px;
-  font-size: 11px;
+  font-size: 12px;
   display: flex;
   align-items: center;
   gap: 7px;
@@ -878,9 +975,9 @@ button {
   gap: 10px;
   padding: 11px 20px;
   border-top: 1px solid var(--border);
-  font-size: 10px;
-  line-height: 14px;
-  color: rgba(0, 0, 0, 0.45);
+  font-size: 11px;
+  line-height: 15px;
+  color: var(--text-dim);
   flex-shrink: 0;
 }
 /* 초록/주황/빨강 대신 채움 vs 테두리 */
@@ -890,30 +987,28 @@ button {
   flex-shrink: 0;
   border-radius: 50%;
   background: var(--text);
+  /* 글이 없으니 점이 곧 상태 안내다. 마우스를 올릴 자리를 넓혀 둔다. */
+  position: relative;
+}
+.status .dot::before {
+  content: '';
+  position: absolute;
+  inset: -10px;
 }
 .status.offline .dot,
 .status.failed .dot {
   background: none;
   box-shadow: inset 0 0 0 1.5px var(--text);
 }
-.status.offline > span,
-.status.failed > span {
-  color: var(--text);
-  font-weight: 500;
-}
-.status .err {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 .status button {
   margin-left: auto;
   background: none;
   border: none;
-  color: rgba(0, 0, 0, 0.45);
-  font-size: 10px;
-  line-height: 14px;
+  color: var(--text-dim);
+  font-size: 11px;
+  line-height: 15px;
   padding: 0;
+  flex-shrink: 0;
 }
 .status button + button {
   margin-left: 0;
@@ -975,9 +1070,9 @@ button {
 }
 .login .hint {
   margin-top: 18px;
-  font-size: 10px;
-  line-height: 16px;
-  color: var(--text-faint);
+  font-size: 11px;
+  line-height: 17px;
+  color: var(--text-dim);
   max-width: 320px;
 }
 .login .hint.error {
@@ -989,13 +1084,39 @@ button {
   padding: 0;
   border: none;
   background: none;
-  font-size: 10px;
-  color: var(--text-faint);
+  font-size: 11px;
+  color: var(--text-dim);
 }
 .login .hint button:hover {
   background: none;
   color: var(--text);
   text-decoration: underline;
+}
+
+/* ── 낮은 위젯 창 ─────────────────────────────────────
+   최소 크기(730×400)에서도 달력 다섯·여섯 줄과 상태줄이 함께 들어가야 한다. */
+@media (min-width: 721px) and (max-height: 480px) {
+  .calendar {
+    padding: 20px 24px 16px;
+  }
+  .cal-head {
+    margin-bottom: 12px;
+  }
+  .cal-weekdays {
+    margin-bottom: 4px;
+  }
+  .cal-grid {
+    gap: 2px;
+  }
+  .cal-cell {
+    padding-top: 3px;
+  }
+  .cal-dots {
+    margin-top: 3px;
+  }
+  .side-head {
+    padding-top: 24px;
+  }
 }
 
 /* ── 모바일 ──────────────────────────────────────────── */
@@ -1036,9 +1157,11 @@ button {
     padding: calc(env(safe-area-inset-top) + 12px) 16px 10px;
     overflow: hidden;
   }
-  .calendar.collapsed .cal-grid,
-  .calendar.collapsed .cal-weekdays {
-    display: none;
+  .cal-title-caret {
+    display: block;
+  }
+  .cal-title {
+    cursor: pointer;
   }
   .cal-head {
     gap: 10px;
@@ -1050,7 +1173,7 @@ button {
   }
   .cal-grid {
     flex: none;
-    grid-auto-rows: 40px;
+    grid-template-rows: repeat(var(--weeks, 6), 42px);
   }
   .cal-cell {
     padding: 4px 2px 0;
@@ -1100,7 +1223,7 @@ button {
     line-height: 22px;
   }
   .undo-bar {
-    padding: 2px 16px 10px;
+    margin: 0 16px 10px;
     font-size: 13px;
   }
   .undo-bar button {
@@ -1115,9 +1238,11 @@ button {
     -webkit-touch-callout: none;
     user-select: none;
   }
+  .task {
+    --title-lh: 21px;
+  }
   .task-title {
     font-size: 15px;
-    line-height: 21px;
   }
   .task-meta {
     font-size: 12px;
@@ -1175,8 +1300,22 @@ button {
      iOS 는 포커스 대상의 글자가 16px 보다 작으면 화면을 당겨 확대한다.
      되돌아오지 않으므로 여기서 미리 막는다. */
   .notes-area,
-  .field select {
+  .field select,
+  .field input[type='date'],
+  .field input[type='time'] {
     font-size: 16px;
+  }
+  .field input[type='date'],
+  .field input[type='time'],
+  .field select {
+    min-height: 44px;
+  }
+  .field label,
+  .field .field-label {
+    width: 36px;
+  }
+  .detail-head {
+    padding-top: calc(env(safe-area-inset-top) + 14px);
   }
 
   /* ── 터치 타깃 ───────────────────────────────────────
@@ -1200,7 +1339,7 @@ button {
   .cal-nav {
     width: 44px;
     height: 44px;
-    font-size: 15px;
+    font-size: 16px;
   }
   .cal-today-btn {
     height: 44px;

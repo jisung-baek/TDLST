@@ -28,6 +28,12 @@ export interface StoreState {
 /** 완료 항목을 언제까지 들고 있을지. 그보다 오래된 것은 서버에서 읽지 않는다. */
 const COMPLETED_RETENTION_DAYS = 30
 
+/** 캐시가 어느 계정 것인지 적어 두는 meta 키 */
+const OWNER_KEY = 'cache-owner'
+
+/** 계정별로 치워 둔 미전송 큐의 meta 키 접두사 */
+const STASH_PREFIX = 'queue-stash:'
+
 type Listener = () => void
 
 class TaskStore {
@@ -66,6 +72,18 @@ class TaskStore {
 
   async init(userId: string) {
     this.userId = userId
+
+    // 0. 캐시는 계정 단위다.
+    //    로그인 계정이 바뀌면 이전 계정의 목록은 이 계정 것이 아니다. 그대로 그리면
+    //    남의 목록이 잠깐 보이고, 이어지는 pull 이 그 위에 빈 서버 응답을 덮어쓴다.
+    const owner = await cache.metaGet(OWNER_KEY)
+    if (owner && owner !== userId) {
+      await cache.queueStash(STASH_PREFIX + owner)
+      await cache.cacheClearTasks()
+      this.setTasks([])
+    }
+    if (owner !== userId) await cache.metaSet(OWNER_KEY, userId)
+    await cache.queueUnstash(STASH_PREFIX + userId)
 
     // 1. 캐시를 먼저 보여준다. 실행 즉시 목록이 뜨는 이유.
     const cached = await cache.cacheGetAll()
@@ -107,6 +125,8 @@ class TaskStore {
       const { data, error } = await supabase
         .from('tasks')
         .select('*')
+        // RLS 가 이미 같은 조건을 걸지만, 무엇을 읽으려는 것인지는 쿼리에 적어 둔다.
+        .eq('user_id', this.userId)
         .is('deleted_at', null)
         .or('completed_at.is.null,completed_at.gte.' + cutoff)
       if (error) throw new Error(error.message)
@@ -121,6 +141,17 @@ class TaskStore {
     }
 
     const server = rows
+
+    // RLS 가 막은 응답은 오류가 아니라 200 + 빈 배열로 온다. 그래서 '권한이 어긋났다' 와
+    // '정말 할 일이 없다' 가 구분되지 않는다. 로컬에 목록이 있는데 서버가 0개를 돌려주면
+    // 캐시가 마지막 사본일 수 있으므로, 덮어쓰지 않고 멈춰서 알린다.
+    if (server.length === 0 && this.state.tasks.length > 0) {
+      this.set({
+        error: '서버가 0개를 반환했습니다 — 로그인 계정을 확인하세요. 목록은 지우지 않았습니다.',
+        synced: false,
+      })
+      return
+    }
 
     // 아직 전송되지 않은 로컬 변경이 있으면 그쪽이 최신이다.
     const queued = await cache.queueAll()
@@ -332,6 +363,8 @@ class TaskStore {
 
   async reset() {
     this.dispose()
+    // 로그아웃해도 아직 못 보낸 변경은 그 계정 것이다. 버리지 않고 치워 둔다.
+    if (this.userId) await cache.queueStash(STASH_PREFIX + this.userId)
     await cache.clearAll()
     this.userId = null
     this.state = {

@@ -87,7 +87,59 @@ export async function queueCount(): Promise<number> {
   return (await getDB()).count('queue')
 }
 
+// ── meta / 계정 전환 ────────────────────────────────────
+
+export async function metaGet(key: string): Promise<string | undefined> {
+  return (await getDB()).get('meta', key)
+}
+
+export async function metaSet(key: string, value: string): Promise<void> {
+  await (await getDB()).put('meta', value, key)
+}
+
+/** 목록만 비운다. 큐와 meta 는 건드리지 않는다. */
+export async function cacheClearTasks(): Promise<void> {
+  await (await getDB()).clear('tasks')
+}
+
+/**
+ * 큐를 통째로 meta 에 치워 둔다.
+ *
+ * 계정이 바뀌면 이전 계정의 미전송 변경은 지금 토큰으로 보낼 수 없다 — RLS 가 막는다.
+ * 그렇다고 버리면 오프라인에서 적은 것이 조용히 사라진다. 주인 이름표를 달아 두었다가
+ * 그 계정으로 다시 들어올 때 돌려놓는다.
+ */
+export async function queueStash(key: string): Promise<void> {
+  const db = await getDB()
+  const rows = await db.getAll('queue')
+  if (rows.length === 0) return
+  const prev = await db.get('meta', key)
+  const kept = prev ? (JSON.parse(prev) as QueuedMutation[]) : []
+  // seq 는 큐에 다시 넣을 때 새로 매겨지므로 빼고 저장한다
+  const merged = [...kept, ...rows.map((r) => ({ at: r.at, mutation: r.mutation }))]
+  await db.put('meta', JSON.stringify(merged), key)
+  await db.clear('queue')
+}
+
+/** 치워 둔 큐를 되돌린다. 없으면 아무 일도 하지 않는다. */
+export async function queueUnstash(key: string): Promise<void> {
+  const db = await getDB()
+  const raw = await db.get('meta', key)
+  if (!raw) return
+  const rows = JSON.parse(raw) as QueuedMutation[]
+  const tx = db.transaction('queue', 'readwrite')
+  await Promise.all(rows.map((r) => tx.store.add(r)))
+  await tx.done
+  await db.delete('meta', key)
+}
+
+/**
+ * 로그아웃 시 로컬 흔적을 지운다.
+ *
+ * meta 는 남긴다. 캐시 주인과 치워 둔 큐가 거기 있어서, 지우면 다시 로그인했을 때
+ * 계정이 바뀌었는지 알 수 없고 아직 못 보낸 변경도 함께 사라진다.
+ */
 export async function clearAll(): Promise<void> {
   const db = await getDB()
-  await Promise.all([db.clear('tasks'), db.clear('queue'), db.clear('meta')])
+  await Promise.all([db.clear('tasks'), db.clear('queue')])
 }

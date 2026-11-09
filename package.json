@@ -12,7 +12,8 @@
     "widget": "tauri dev",
     "widget:build": "tauri build",
     "tauri": "tauri",
-    "shoot": "node --experimental-strip-types scripts/shoot.ts"
+    "shoot": "node --experimental-strip-types scripts/shoot.ts",
+    "release": "node --experimental-strip-types scripts/release.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",

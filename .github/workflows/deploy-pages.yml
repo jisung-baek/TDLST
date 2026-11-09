@@ -1,0 +1,52 @@
+# main 에 push 하면 폰 웹앱(tdlst.pages.dev)을 다시 빌드해 올린다.
+#
+# Pages 프로젝트가 Direct Upload 로 만들어져 있어 Cloudflare 쪽 Git 연동으로는
+# 바꿀 수 없다 (바꾸려면 프로젝트를 새로 만들어야 하고 주소가 달라진다).
+# 그래서 빌드는 여기서 하고, 올리는 것만 wrangler 로 기존 프로젝트에 한다.
+#
+# 필요한 저장소 Secrets (Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_API_TOKEN    Cloudflare Pages: Edit 권한 토큰
+#   CLOUDFLARE_ACCOUNT_ID   Cloudflare 계정 ID
+#   VITE_SUPABASE_URL       .env 와 같은 값 — 빌드 때 번들에 박힌다
+#   VITE_SUPABASE_ANON_KEY  .env 와 같은 값
+
+name: Deploy phone web app
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# 연달아 push 하면 앞의 배포는 취소하고 마지막 것만 올린다
+concurrency:
+  group: pages-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # 날짜 인식·그룹 로직이 깨진 채로 폰에 올라가지 않게 한다
+      - run: npm test
+
+      - run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name tdlst --branch main

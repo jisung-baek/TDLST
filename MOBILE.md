@@ -19,21 +19,33 @@ Cloudflare Pages 에 올라가 있다 (SPEC §11 이 정한 대로, 프로젝트
 
 ### 고친 것을 폰에 반영하기
 
-저장소에 `wrangler.toml` 도 CI 설정도 없다. 빌드해서 직접 올리는 방식이다.
+**main 에 push 하면 자동으로 올라간다.** GitHub Actions
+(`.github/workflows/deploy-pages.yml`)가 테스트 → 빌드 → `tdlst.pages.dev` 업로드까지
+1~2분 안에 끝낸다. 진행 상황은 `gh run watch` 나 GitHub 의 Actions 탭에서 본다.
+
+노트북 위젯까지 한 번에 바꾸려면 `npm run release` 를 쓴다 — push 하고, 위젯을 다시
+빌드해 설치하고, 다시 띄운다. 위젯만 바꿀 때는 `npm run release -- --no-push`.
+
+> Pages 프로젝트가 Direct Upload 로 만들어져서 Cloudflare 대시보드의 Git 연동으로는
+> 바꿀 수 없다. 바꾸려면 프로젝트를 새로 만들어야 하고 주소가 `tdlst.pages.dev` 에서
+> 달라진다. 그래서 빌드는 GitHub 에서 하고 올리는 것만 기존 프로젝트에 한다.
+
+처음 한 번, 저장소 **Settings → Secrets and variables → Actions** 에 네 값을 넣어야 한다.
+`VITE_` 두 값은 빌드 때 번들에 박히므로 **`.env` 를 고쳤으면 여기도 같이 고쳐야** 폰에 반영된다.
+
+| Secret                   | 값                                                        |
+| ------------------------ | --------------------------------------------------------- |
+| `VITE_SUPABASE_URL`      | `.env` 와 같은 값 (Supabase 프로젝트 설정 > API)          |
+| `VITE_SUPABASE_ANON_KEY` | `.env` 와 같은 값 (같은 화면의 anon key)                   |
+| `CLOUDFLARE_API_TOKEN`   | Cloudflare → My Profile → API Tokens → **Cloudflare Pages: Edit** 권한으로 만든 토큰 |
+| `CLOUDFLARE_ACCOUNT_ID`  | Cloudflare 대시보드 → Workers & Pages 화면 오른쪽의 Account ID |
+
+급할 때 손으로 올리는 방법도 그대로 된다.
 
 ```bash
 npm run build
 npx wrangler pages deploy dist --project-name tdlst --branch main
 ```
-
-Cloudflare 에 환경변수를 등록할 필요는 없다. `npm run build` 가 `.env` 의 두 값을
-이미 번들에 박아 넣기 때문이다. 뒤집어 말하면 **`.env` 를 고쳤으면 반드시 다시
-빌드해서 다시 올려야** 폰에 반영된다.
-
-| 변수                     | 값                           |
-| ------------------------ | ---------------------------- |
-| `VITE_SUPABASE_URL`      | Supabase 프로젝트 설정 > API |
-| `VITE_SUPABASE_ANON_KEY` | 같은 화면의 anon key         |
 
 ### 같은 Wi-Fi 에서 개발 서버로 (임시)
 

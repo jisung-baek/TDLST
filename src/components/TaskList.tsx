@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { GroupKey, TaskGroup } from '../lib/grouping.ts'
 import { startOfDay } from '../lib/grouping.ts'
 import { CATEGORY_COLOR, type Task } from '../lib/types.ts'
+import { Chevron, NoteIcon, RepeatIcon } from './Icons.tsx'
 
 const WEEKDAY = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -95,9 +96,24 @@ function TaskItem({ task, selected, now, showDate, onToggle, onOpen, onMenu }: I
   return (
     <div
       className={'task' + (done ? ' done' : '') + (selected ? ' selected' : '')}
+      // div 라 그대로는 키보드로 닿지 않는다. 줄 자체가 '상세 열기' 버튼이다.
+      role="button"
+      tabIndex={0}
+      aria-label={`${task.title} — 상세 열기`}
       onClick={() => {
         if (swallowClick()) return
         onOpen(task.id)
+      }}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onOpen(task.id)
+        } else if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
+          e.preventDefault()
+          const r = e.currentTarget.getBoundingClientRect()
+          onMenu(task.id, r.left + 40, r.bottom - 4)
+        }
       }}
       onContextMenu={(e) => {
         // 위젯 안에서는 브라우저 기본 메뉴가 쓸모없다 — 우리 메뉴로 대체한다
@@ -117,6 +133,9 @@ function TaskItem({ task, selected, now, showDate, onToggle, onOpen, onMenu }: I
           if (swallowClick()) return
           onToggle(task.id)
         }}
+        role="checkbox"
+        aria-checked={done}
+        aria-label={done ? `${task.title} 완료 취소` : `${task.title} 완료`}
         title={done ? '완료 취소' : '완료'}
       />
       <span className="task-bar" style={{ background: CATEGORY_COLOR[task.category] }} />
@@ -126,10 +145,14 @@ function TaskItem({ task, selected, now, showDate, onToggle, onOpen, onMenu }: I
           <div className="task-meta">
             {date && <span className={overdue ? 'overdue' : undefined}>{date}</span>}
             {time && <span className={overdue ? 'overdue' : undefined}>{time}</span>}
-            {task.repeat !== 'none' && <span title="반복">↻</span>}
+            {task.repeat !== 'none' && (
+              <span title="반복" aria-label="반복">
+                <RepeatIcon className="meta-icon" />
+              </span>
+            )}
             {task.notes && (
-              <span className="task-note-mark" title="메모 있음">
-                ≡
+              <span className="task-note-mark" title="메모 있음" aria-label="메모 있음">
+                <NoteIcon className="meta-icon" />
               </span>
             )}
           </div>
@@ -176,6 +199,12 @@ export default function TaskList({
     done: true,
   })
   const [menu, setMenu] = useState<Menu | null>(null)
+  const menuItem = useRef<HTMLButtonElement>(null)
+
+  // 메뉴가 뜨면 항목에 포커스를 준다 — 키보드로 연 경우 Enter 한 번이면 끝난다
+  useEffect(() => {
+    if (menu) menuItem.current?.focus({ preventScroll: true })
+  }, [menu])
 
   /*
    * 메뉴는 아무 데나 손대면 닫힌다.
@@ -231,6 +260,7 @@ export default function TaskList({
             <div className="group-head-row">
               <button
                 className={'group-head' + (isOverdue ? ' overdue' : '')}
+                aria-expanded={!isCollapsed}
                 onClick={() => setCollapsed((c) => ({ ...c, [g.key]: !isCollapsed }))}
               >
                 {/* 지남은 붉은색이 없는 대신 검은 정사각 마커가 캐럿을 대신한다.
@@ -238,7 +268,7 @@ export default function TaskList({
                 {isOverdue ? (
                   <span className={'overdue-mark' + (isCollapsed ? ' closed' : '')} />
                 ) : (
-                  <span className={'caret' + (isCollapsed ? '' : ' open')}>▶</span>
+                  <Chevron dir="right" className={'caret' + (isCollapsed ? '' : ' open')} />
                 )}
                 {g.label}
                 <span className="group-count">{g.tasks.length}</span>
@@ -273,6 +303,7 @@ export default function TaskList({
       {menu && (
         <div
           className="ctx-menu"
+          role="menu"
           style={{
             left: Math.min(menu.x, window.innerWidth - MENU_W),
             top: Math.min(menu.y, window.innerHeight - MENU_H),
@@ -282,6 +313,8 @@ export default function TaskList({
           onContextMenu={(e) => e.preventDefault()}
         >
           <button
+            ref={menuItem}
+            role="menuitem"
             onClick={() => {
               onDelete(menu.id)
               setMenu(null)

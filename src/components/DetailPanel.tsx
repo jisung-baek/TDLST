@@ -7,8 +7,13 @@ import {
   type Repeat,
   type Task,
 } from '../lib/types.ts'
+import { XIcon } from './Icons.tsx'
 
-const Markdown = lazy(() => import('./Markdown.tsx'))
+const loadMarkdown = () => import('./Markdown.tsx')
+const Markdown = lazy(loadMarkdown)
+
+/** 패널을 열기 전에 미리 받아둔다. 안 그러면 메모 자리에 '…' 가 한 박자 비친다. */
+export const preloadMarkdown = () => void loadMarkdown()
 
 /** <input type="date"> 는 로컬 기준 YYYY-MM-DD 를 원한다 */
 function toDateInput(iso: string | null): string {
@@ -48,15 +53,29 @@ interface Props {
 export default function DetailPanel({ task, onPatch, onDelete, onClose }: Props) {
   const [title, setTitle] = useState(task.title)
   const [notes, setNotes] = useState(task.notes ?? '')
-  const [editingNotes, setEditingNotes] = useState(!task.notes)
+  // 메모가 없을 때도 처음엔 미리보기('메모 추가…')로 연다. 바로 입력칸을 띄우면
+  // 폰에서 항목을 눌렀을 뿐인데 키보드가 올라와 화면 절반을 가린다.
+  const [editingNotes, setEditingNotes] = useState(false)
   const notesRef = useRef<HTMLTextAreaElement>(null)
+  const titleRef = useRef<HTMLTextAreaElement>(null)
+  const closeRef = useRef<HTMLButtonElement>(null)
 
   // 다른 task 를 열면 로컬 편집 상태를 갈아끼운다
   useEffect(() => {
     setTitle(task.title)
     setNotes(task.notes ?? '')
-    setEditingNotes(!task.notes)
-  }, [task.id, task.title, task.notes])
+    setEditingNotes(false)
+    // 키보드로 연 사람이 패널 안에서 시작하도록
+    closeRef.current?.focus({ preventScroll: true })
+  }, [task.id])
+
+  // 다른 기기에서 고친 값은 받아오되, 지금 손대고 있는 칸은 덮어쓰지 않는다
+  useEffect(() => {
+    if (document.activeElement !== titleRef.current) setTitle(task.title)
+  }, [task.title])
+  useEffect(() => {
+    if (document.activeElement !== notesRef.current) setNotes(task.notes ?? '')
+  }, [task.notes])
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -79,7 +98,7 @@ export default function DetailPanel({ task, onPatch, onDelete, onClose }: Props)
   function commitNotes() {
     const next = notes.trim() || null
     if (next !== task.notes) onPatch({ notes: next })
-    setEditingNotes(!next)
+    setEditingNotes(false)
   }
 
   function setDue(dateStr: string, timeStr: string) {
@@ -91,20 +110,22 @@ export default function DetailPanel({ task, onPatch, onDelete, onClose }: Props)
   const timeStr = toTimeInput(task.due_at, task.is_all_day)
 
   return (
-    <div className="detail">
+    <div className="detail" role="dialog" aria-label={`${task.title} 상세`}>
       <div className="detail-head">
-        <button onClick={onClose} title="닫기 (Esc)">
-          ✕
+        <button ref={closeRef} onClick={onClose} title="닫기 (Esc)" aria-label="닫기">
+          <XIcon />
         </button>
         <span style={{ flex: 1 }} />
-        <button className="danger" onClick={onDelete} title="삭제">
+        <button className="danger" onClick={onDelete}>
           삭제
         </button>
       </div>
 
       <div className="detail-body">
         <textarea
+          ref={titleRef}
           className="detail-title"
+          aria-label="제목"
           value={title}
           rows={Math.min(4, Math.ceil(title.length / 24) || 1)}
           onChange={(e) => setTitle(e.target.value)}
@@ -118,14 +139,16 @@ export default function DetailPanel({ task, onPatch, onDelete, onClose }: Props)
         />
 
         <div className="field">
-          <label>마감</label>
+          <label htmlFor="detail-due">마감</label>
           <input
+            id="detail-due"
             type="date"
             value={dateStr}
             onChange={(e) => setDue(e.target.value, timeStr)}
           />
           <input
             type="time"
+            aria-label="마감 시각"
             value={timeStr}
             disabled={!dateStr}
             onChange={(e) => setDue(dateStr, e.target.value)}
@@ -135,18 +158,21 @@ export default function DetailPanel({ task, onPatch, onDelete, onClose }: Props)
               className="field-clear"
               onClick={() => onPatch({ due_at: null, is_all_day: true })}
               title="마감일 지우기"
+              aria-label="마감일 지우기"
             >
-              ✕
+              <XIcon />
             </button>
           )}
         </div>
 
         <div className="field">
-          <label>분류</label>
-          <div className="seg">
+          <span className="field-label" id="detail-cat">분류</span>
+          <div className="seg" role="radiogroup" aria-labelledby="detail-cat">
             {(['academic', 'other'] as Category[]).map((c) => (
               <button
                 key={c}
+                role="radio"
+                aria-checked={task.category === c}
                 className={task.category === c ? 'on' : ''}
                 onClick={() => onPatch({ category: c })}
               >
@@ -158,8 +184,9 @@ export default function DetailPanel({ task, onPatch, onDelete, onClose }: Props)
         </div>
 
         <div className="field">
-          <label>반복</label>
+          <label htmlFor="detail-repeat">반복</label>
           <select
+            id="detail-repeat"
             value={task.repeat}
             onChange={(e) => onPatch({ repeat: e.target.value as Repeat })}
             disabled={!task.due_at}
@@ -177,6 +204,7 @@ export default function DetailPanel({ task, onPatch, onDelete, onClose }: Props)
           <textarea
             ref={notesRef}
             className="notes-area"
+            aria-label="메모 (마크다운)"
             value={notes}
             placeholder="메모"
             onChange={(e) => setNotes(e.target.value)}
@@ -185,7 +213,16 @@ export default function DetailPanel({ task, onPatch, onDelete, onClose }: Props)
         ) : (
           <div
             className="notes-preview"
+            role="button"
+            tabIndex={0}
+            aria-label={notes ? '메모 편집' : '메모 추가'}
             onClick={() => setEditingNotes(true)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                setEditingNotes(true)
+              }
+            }}
             title="눌러서 편집"
           >
             {notes ? (

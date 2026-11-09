@@ -252,6 +252,17 @@ npm run widget:build
 `src-tauri/target/release/bundle/nsis/` 에 설치 파일이 생긴다.
 설치하면 다음 부팅부터 자동 실행된다. (개발 모드에서는 자동 실행에 등록되지 않는다.)
 
+## 고친 것 반영하기
+
+위젯은 화면 파일이 exe 안에 들어 있어서, 코드를 고쳐도 다시 설치하기 전까지는 옛 화면 그대로다.
+
+```bash
+npm run release              # push(→ 폰 자동 배포) + 위젯 빌드 · 재설치 · 재실행
+npm run release -- --no-push # 위젯만
+```
+
+폰 쪽 자동 배포 설정은 [MOBILE.md](MOBILE.md) 의 "고친 것을 폰에 반영하기" 에 있다.
+
 ## 위젯 창의 성질
 
 - **바탕화면 층에 고정** — 다른 창을 열면 가려진다. `Win+D` 로 창을 치우면 드러난다.

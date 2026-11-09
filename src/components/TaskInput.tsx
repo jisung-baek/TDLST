@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { formatDuePreview, parseTaskInput } from '../lib/dateParser.ts'
 import { CATEGORY_COLOR, CATEGORY_LABEL, type Category, type NewTask } from '../lib/types.ts'
+import { XIcon } from './Icons.tsx'
 
 interface Props {
   /** 달력에서 날짜를 고른 상태면, 날짜를 안 적어도 그날로 넣는다 */
@@ -41,8 +42,9 @@ export default function TaskInput({ defaultDate, onAdd }: Props) {
     if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
       e.preventDefault()
       submit()
-    } else if (e.key === 'Tab') {
-      // 위젯에서 Tab 은 포커스를 옮길 곳이 없으니 카테고리 토글로 쓴다
+    } else if ((e.key === 'Tab' || e.code === 'Tab') && !e.shiftKey) {
+      // Tab 은 항상 카테고리 토글. 입력창을 빠져나갈 때는 Shift+Tab 이나 Esc.
+      // 한글 조합 중에는 key 가 'Process' 로 오기도 해서 code 도 본다.
       e.preventDefault()
       setCategory((c) => (c === 'academic' ? 'other' : 'academic'))
     } else if (e.key === 'Escape') {
@@ -59,6 +61,7 @@ export default function TaskInput({ defaultDate, onAdd }: Props) {
           ref={inputRef}
           value={value}
           placeholder="할 일 입력"
+          aria-label="할 일 입력. 날짜와 시각을 같이 적으면 알아서 인식합니다"
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={onKeyDown}
           enterKeyHint="done"
@@ -70,6 +73,7 @@ export default function TaskInput({ defaultDate, onAdd }: Props) {
           className="cat-toggle"
           onClick={() => setCategory((c) => (c === 'academic' ? 'other' : 'academic'))}
           title={`${CATEGORY_LABEL[category]} — 눌러서 전환 (Tab)`}
+          aria-label={`분류: ${CATEGORY_LABEL[category]}. 눌러서 전환`}
         >
           <span className="cat-swatch" style={{ background: CATEGORY_COLOR[category] }} />
         </button>
@@ -79,8 +83,12 @@ export default function TaskInput({ defaultDate, onAdd }: Props) {
         <div className="due-preview">
           <span>→ {formatDuePreview(effectiveDue, effectiveAllDay)}</span>
           {parsed.matchedText && !dismissed && (
-            <button onClick={() => setDismissedFor(value)} title="날짜로 보지 않기">
-              ✕
+            <button
+              onClick={() => setDismissedFor(value)}
+              title="날짜로 보지 않기"
+              aria-label="날짜로 보지 않기"
+            >
+              <XIcon />
             </button>
           )}
         </div>

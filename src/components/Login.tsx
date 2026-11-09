@@ -20,7 +20,13 @@ async function signInDesktop() {
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: DESKTOP_CALLBACK, skipBrowserRedirect: true },
+    options: {
+      redirectTo: DESKTOP_CALLBACK,
+      skipBrowserRedirect: true,
+      // 브라우저에 구글 계정이 하나만 로그인돼 있으면 선택 화면 없이 그 계정으로 넘어간다.
+      // 계정이 달라지면 목록도 통째로 달라지므로 매번 직접 고르게 한다.
+      queryParams: { prompt: 'select_account' },
+    },
   })
   if (error) throw error
   if (!data.url) throw new Error('인증 주소를 받지 못했습니다')
@@ -37,7 +43,11 @@ async function signInDesktop() {
 async function signInBrowser() {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: window.location.origin },
+    options: {
+      redirectTo: window.location.origin,
+      // 계정 자동 선택 방지 — signInDesktop 의 주석 참고
+      queryParams: { prompt: 'select_account' },
+    },
   })
   if (error) throw error
 }
@@ -63,12 +73,11 @@ export default function Login() {
       <div>
         <h1>TDLST</h1>
         <p>노트북과 폰이 같은 목록을 봅니다.</p>
+        {/* 계정을 잘못 고르면 빈 목록이 보인다. 안내문 대신 매번 계정 선택 화면을 띄워 막는다
+            (signInDesktop 의 prompt: 'select_account'). */}
         <button onClick={signIn} disabled={busy}>
           {busy ? (IN_TAURI ? '브라우저에서 로그인 중…' : '여는 중…') : 'Google 계정으로 계속'}
         </button>
-        {busy && IN_TAURI && (
-          <p className="hint">브라우저 창에서 로그인을 마치면 이 화면이 넘어갑니다.</p>
-        )}
         {/* 단색 시스템이라 오류도 붉지 않다. 농도와 굵기로만 올린다. */}
         {error && <p className="hint error">{error}</p>}
         {/* 창 장식이 없어서 로그인 전에는 이 버튼 말고 위젯을 끌 방법이 없다 */}
